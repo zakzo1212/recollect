@@ -85,6 +85,7 @@ To verify everything is working:
 ## Next Steps
 
 Once this is working, you can:
+
 - Add authentication (user_id will be automatically set)
 - Add Row Level Security policies to restrict access to user's own ideas
 - Add indexes for better performance

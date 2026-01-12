@@ -19,27 +19,38 @@ export default function IdeaForm({ onIdeaAdded }: IdeaFormProps) {
     inputRef.current?.focus();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!text.trim()) {
+    if (!text.trim() || isSubmitting) {
       return;
     }
 
-    const newIdea: Idea = {
-      id: crypto.randomUUID(),
-      text: text.trim(),
-      tags: selectedTags,
-      createdAt: new Date().toISOString(),
-      done: false,
-    };
+    setIsSubmitting(true);
 
-    saveIdea(newIdea);
-    setText('');
-    setSelectedTags([]);
-    setShowTags(false);
-    onIdeaAdded();
-    inputRef.current?.focus();
+    try {
+      const newIdea: Idea = {
+        id: crypto.randomUUID(),
+        text: text.trim(),
+        tags: selectedTags,
+        createdAt: new Date().toISOString(),
+        done: false,
+      };
+
+      await saveIdea(newIdea);
+      setText('');
+      setSelectedTags([]);
+      setShowTags(false);
+      onIdeaAdded();
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error('Error saving idea:', error);
+      alert('Failed to save idea. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleTag = (tag: string) => {
@@ -80,8 +91,8 @@ export default function IdeaForm({ onIdeaAdded }: IdeaFormProps) {
           </div>
         )}
       </div>
-      <button type="submit" className="submit-button" disabled={!text.trim()}>
-        Add Idea
+      <button type="submit" className="submit-button" disabled={!text.trim() || isSubmitting}>
+        {isSubmitting ? 'Saving...' : 'Add Idea'}
       </button>
     </form>
   );

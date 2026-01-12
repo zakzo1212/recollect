@@ -1,42 +1,74 @@
 import { Idea } from '@/types/idea';
 
-const STORAGE_KEY = 'recollect-ideas';
+const API_BASE = '/api/ideas';
 
-export function saveIdea(idea: Idea): void {
-  const ideas = getIdeas();
-  ideas.push(idea);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+// Save a new idea to the database
+export async function saveIdea(idea: Idea): Promise<Idea> {
+  const response = await fetch(API_BASE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      text: idea.text,
+      tags: idea.tags,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to save idea' }));
+    throw new Error(error.error || 'Failed to save idea');
+  }
+
+  return response.json();
 }
 
-export function getIdeas(): Idea[] {
-  if (typeof window === 'undefined') {
-    return [];
+// Get all ideas from the database
+export async function getIdeas(): Promise<Idea[]> {
+  const response = await fetch(API_BASE, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch ideas' }));
+    throw new Error(error.error || 'Failed to fetch ideas');
   }
-  
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    return [];
-  }
-  
-  try {
-    return JSON.parse(stored) as Idea[];
-  } catch {
-    return [];
-  }
+
+  return response.json();
 }
 
-export function updateIdea(id: string, updates: Partial<Idea>): void {
-  const ideas = getIdeas();
-  const index = ideas.findIndex(idea => idea.id === id);
-  
-  if (index !== -1) {
-    ideas[index] = { ...ideas[index], ...updates };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+// Update an existing idea
+export async function updateIdea(id: string, updates: Partial<Idea>): Promise<Idea> {
+  const response = await fetch(`${API_BASE}/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to update idea' }));
+    throw new Error(error.error || 'Failed to update idea');
   }
+
+  return response.json();
 }
 
-export function deleteIdea(id: string): void {
-  const ideas = getIdeas();
-  const filtered = ideas.filter(idea => idea.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+// Delete an idea
+export async function deleteIdea(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to delete idea' }));
+    throw new Error(error.error || 'Failed to delete idea');
+  }
 }

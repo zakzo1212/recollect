@@ -9,9 +9,21 @@ import SurfacingButton from '@/components/SurfacingButton';
 
 export default function Home() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadIdeas = () => {
-    setIdeas(getIdeas());
+  const loadIdeas = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const fetchedIdeas = await getIdeas();
+      setIdeas(fetchedIdeas);
+    } catch (err) {
+      console.error('Error loading ideas:', err);
+      setError('Failed to load ideas. Please refresh the page.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -31,7 +43,22 @@ export default function Home() {
           <IdeaForm onIdeaAdded={loadIdeas} />
         </div>
 
-        <IdeasList ideas={ideas} onUpdate={loadIdeas} />
+        {error && (
+          <div className="error-message">
+            <p>{error}</p>
+            <button onClick={loadIdeas} className="retry-button">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="loading-state">
+            <p>Loading your ideas...</p>
+          </div>
+        ) : (
+          <IdeasList ideas={ideas} onUpdate={loadIdeas} />
+        )}
       </div>
     </main>
   );

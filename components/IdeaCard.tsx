@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Idea } from '@/types/idea';
 import { updateIdea, deleteIdea } from '@/lib/storage';
 
@@ -9,18 +10,40 @@ interface IdeaCardProps {
 }
 
 export default function IdeaCard({ idea, onUpdate }: IdeaCardProps) {
-  const handleMarkDone = () => {
-    updateIdea(idea.id, {
-      done: !idea.done,
-      doneAt: !idea.done ? new Date().toISOString() : undefined,
-    });
-    onUpdate();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleMarkDone = async () => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateIdea(idea.id, {
+        done: !idea.done,
+        doneAt: !idea.done ? new Date().toISOString() : undefined,
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating idea:', error);
+      alert('Failed to update idea. Please try again.');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (isDeleting) return;
+    
     if (confirm('Are you sure you want to delete this idea?')) {
-      deleteIdea(idea.id);
-      onUpdate();
+      setIsDeleting(true);
+      try {
+        await deleteIdea(idea.id);
+        onUpdate();
+      } catch (error) {
+        console.error('Error deleting idea:', error);
+        alert('Failed to delete idea. Please try again.');
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -47,14 +70,16 @@ export default function IdeaCard({ idea, onUpdate }: IdeaCardProps) {
         <button
           onClick={handleMarkDone}
           className={`action-button ${idea.done ? 'done-button' : 'mark-done-button'}`}
+          disabled={isUpdating || isDeleting}
         >
-          {idea.done ? '✓ Done' : 'Mark Done'}
+          {isUpdating ? '...' : idea.done ? '✓ Done' : 'Mark Done'}
         </button>
         <button
           onClick={handleDelete}
           className="action-button delete-button"
+          disabled={isUpdating || isDeleting}
         >
-          Delete
+          {isDeleting ? 'Deleting...' : 'Delete'}
         </button>
       </div>
     </div>

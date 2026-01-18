@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getServerSupabase, getCurrentUser } from '@/lib/get-user';
 import { Idea } from '@/types/idea';
 
 // PATCH /api/ideas/[id] - Update an idea
@@ -8,9 +8,18 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
 
+    const supabase = await getServerSupabase();
     const updates: any = {};
     
     if (body.text !== undefined) {
@@ -28,6 +37,7 @@ export async function PATCH(
       .from('ideas')
       .update(updates)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -72,12 +82,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
+    const supabase = await getServerSupabase();
 
     const { error } = await supabase
       .from('ideas')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error deleting idea:', error);

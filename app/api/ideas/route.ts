@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getServerSupabase, getCurrentUser } from '@/lib/get-user';
 import { Idea } from '@/types/idea';
 
 // GET /api/ideas - Fetch all ideas
 export async function GET() {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from('ideas')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -41,6 +51,14 @@ export async function GET() {
 // POST /api/ideas - Create a new idea
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { text, tags } = body;
 
@@ -51,6 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const supabase = await getServerSupabase();
     const newIdea = {
       id: crypto.randomUUID(),
       text: text.trim(),
@@ -58,7 +77,7 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
       done: false,
       done_at: null,
-      user_id: null, // Will be set when we add auth
+      user_id: user.id,
     };
 
     const { data, error } = await supabase
